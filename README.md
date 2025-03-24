@@ -77,19 +77,19 @@ After creating the connector, set these configurations:
 </tr>
 <tr>
     <td>Authenticate Script</td>
-    <td>AuthenticateScript.groovy</td>
+    <td></td>
 </tr>
 <tr>
     <td>Create Script</td>
-    <td>CreateScript.groovy</td>
+    <td></td>
 </tr>
 <tr>
     <td>Update Script</td>
-    <td>UpdateScript.groovy</td>
+    <td></td>
 </tr>
 <tr>
     <td>Delete Script</td>
-    <td>DeleteScript.groovy</td>
+    <td></td>
 </tr>
 <tr>
     <td>Search Script</td>
@@ -97,11 +97,11 @@ After creating the connector, set these configurations:
 </tr>
 <tr>
     <td>Test Script</td>
-    <td>TestScript.groovy</td>
+    <td></td>
 </tr>
 <tr>
     <td>Sync Script</td>
-    <td>SyncScript.groovy</td>
+    <td></td>
 </tr>
 <tr>
     <td>Schema Script</td>
@@ -109,11 +109,11 @@ After creating the connector, set these configurations:
 </tr>
 <tr>
     <td>Resolve Username Script Script</td>
-    <td>ResolveUsernameScript.groovy</td>
+    <td></td>
 </tr>
 <tr>
     <td>Script On Resource Script</td>
-    <td>ScriptOnResourceScript.groovy</td>
+    <td></td>
 </tr>
 <tr>
     <td>Customizer Script</td>
@@ -123,13 +123,32 @@ After creating the connector, set these configurations:
 
 ## Basic mappings
 
-To map users from Akamai to PingIDM using the Native PingIDM UI, navigate to Native Consoles > Identity Management. Under the Configure tab, select Mappings, and create a new mapping. Choose the Scripted REST Connector as the source and select the desired User Managed Object as the target.
+Navigate to Native Consoles > Identity Management. Under the Configure tab, select Mappings, and create a new mapping. Choose the Scripted REST Connector as the source and select the desired User Managed Object as the target.
 
-After creating the mapping from Akamai to PingIDM, set these property configurations:
+After creating the mapping from Akamai to PingIDM, you can set the following property configurations:
 
-![ScreenShot](./example_mappings.png)
+![ScreenShot](./images/example_mappings.png)
+
+### Supported Attributes
+The Akamai connector supports these Akamai Identity Cloud attributes:
+- `givenName`
+- `familyName`
+- `middleName`
+   - *Custom IDM attribute required*
+- `displayName`
+- `email`
+- `mobileNumber`
+- `gender`
+- `password`
+- `address1`
+- `stateAbbreviation`
+- `city`
+- `country`
+- `zip`
+
+**Note:** It is recommended that all schema attribute policies are turned off in order to avoid attribute mapping complications.
+
 <!-- SUPPORT -->
-
 ## Support
 
 If you encounter any issues, be sure to check our **[Troubleshooting](https://backstage.forgerock.com/knowledge/kb/article/a68547609)** pages.
