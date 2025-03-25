@@ -168,41 +168,41 @@ if (filter != null) {
 
                 if (parsed.results && parsed.results.size() > 0) {
                     parsed.results.each { item ->
-                    Map<String, Object> map = new LinkedHashMap<>();
-                    if (item.givenName != null) { map.put("givenName", item.givenName) }
-                    if (item.familyName != null) { map.put("familyName", item.familyName) }
-                    if (item.middleName != null) { map.put("middleName", item.middleName) }
-                    if (item.displayName != null) { map.put("displayName", item.displayName) }
-                    if (item.email != null) { map.put("email", item.email) }
-                    if (item.mobileNumber != null) { map.put("mobileNumber", item.mobileNumber) } // -> telephoneNumber
-                    if (item.gender != null) { map.put("gender", item.gender) }
-                    if (item.password?.value != null) {
-                        def originalPassword = item.password.value
-                        def prefix = '''{BCRYPT}$2a$'''
-                        def updatedPassword =  prefix + originalPassword.substring(4)
-                        def guardedPassword = new GuardedString(updatedPassword.toCharArray())
-                        map.put("password", guardedPassword)
-                    }
-                    // ** Address Fields ** //
-                    if (item.primaryAddress?.address1 != null) { map.put("address1", item.primaryAddress.address1) } // -> address1
-                    if (item.primaryAddress?.city != null) { map.put("city", item.primaryAddress.city) } // -> city
-                    if (item.primaryAddress?.country != null) { map.put("country", item.primaryAddress.country) } // -> country
-                    if (item.primaryAddress?.stateAbbreviation != null) { map.put("stateAbbreviation", item.primaryAddress.stateAbbreviation) } // -> stateProvince
-                    if (item.primaryAddress?.zip != null) { map.put("zip", item.primaryAddress.zip) } // -> postalCode
+                        Map<String, Object> map = new LinkedHashMap<>();
+                        if (item.givenName != null) { map.put("givenName", item.givenName) }
+                        if (item.familyName != null) { map.put("familyName", item.familyName) }
+                        if (item.middleName != null) { map.put("middleName", item.middleName) }
+                        if (item.displayName != null) { map.put("displayName", item.displayName) }
+                        if (item.email != null) { map.put("email", item.email) }
+                        if (item.mobileNumber != null) { map.put("mobileNumber", item.mobileNumber) } // -> telephoneNumber
+                        if (item.gender != null) { map.put("gender", item.gender) }
+                        if (item.password?.value != null) {
+                            def originalPassword = item.password.value
+                            def prefix = '''{BCRYPT}$2a$'''
+                            def updatedPassword =  prefix + originalPassword.substring(4)
+                            def guardedPassword = new GuardedString(updatedPassword.toCharArray())
+                            map.put("password", guardedPassword)
+                        }
+                        // ** Address Fields ** //
+                        if (item.primaryAddress?.address1 != null) { map.put("address1", item.primaryAddress.address1) } // -> postalAddress
+                        if (item.primaryAddress?.city != null) { map.put("city", item.primaryAddress.city) } // -> city
+                        if (item.primaryAddress?.country != null) { map.put("country", item.primaryAddress.country) } // -> country
+                        if (item.primaryAddress?.stateAbbreviation != null) { map.put("stateAbbreviation", item.primaryAddress.stateAbbreviation) } // -> stateProvince
+                        if (item.primaryAddress?.zip != null) { map.put("zip", item.primaryAddress.zip) } // -> postalCode
 
-                    log.error("BULK SEARCH - MAP: " + map)
+                        log.error("BULK SEARCH - MAP: " + map)
 
-                    handler {
-                        uid item.id.toString()
-                        id item.id.toString()
-                        attributes ScriptedRESTUtils.MapToAttributes(map, [], false, false)
+                        handler {
+                            uid item.id.toString()
+                            id item.id.toString()
+                            attributes ScriptedRESTUtils.MapToAttributes(map, [], false, false)
+                        }
                     }
-                }
-                if (parsed.results.size() < maxResults) {
-                    continueLoop = false
-                } else {
-                    lastId = parsed.results.last().id
-                }
+                    if (parsed.results.size() < maxResults) {
+                        continueLoop = false
+                    } else {
+                        lastId = parsed.results.last().id
+                    }
                 } else {
                     continueLoop = false
                 }
