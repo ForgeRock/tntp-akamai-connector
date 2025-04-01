@@ -13,8 +13,7 @@
  *
  * Copyright 2022 ForgeRock AS.
 -->
-# Akamai connector
-
+# Akamai Identity Cloud RCS Connector 
 
 Akamai Identity Cloud RCS Connector for synchronization with PingIDM / PingOne AIC and Akamai Identity Cloud.
 
