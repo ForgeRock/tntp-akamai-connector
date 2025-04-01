@@ -16,7 +16,7 @@
 # Akamai connector
 
 
-This connector integrates PingOne IDM with Akamai Identity Cloud APIs.
+Akamai Identity Cloud RCS Connector for synchronization with PingIDM / PingOne AIC and Akamai Identity Cloud.
 
 **Current Features:**
 - One-way synchronization (Akamai → PingOne IDM)
@@ -141,9 +141,7 @@ After creating the mapping from Akamai to PingIDM, you can set the following pro
 The Akamai connector supports all standard Akamai Identity Cloud attributes as well as custom attributes defined in your Akamai schema.
 - To synchronize custom attributes from Akamai Identity Cloud into PingIDM, you must first define the corresponding custom attributes in IDM.
 
-```
-Note: It is recommended that all schema attribute policies are turned off in order to avoid attribute mapping complications.
-```
+**Note:** It is recommended that all schema attribute policies are turned off in order to avoid attribute mapping complications.
 
 <!-- SUPPORT -->
 ## Support
