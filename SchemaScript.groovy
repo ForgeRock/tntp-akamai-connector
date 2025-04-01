@@ -1,108 +1,111 @@
-/*
- * Copyright 2014-2018 ForgeRock AS. All Rights Reserved
- *
- * Use of this code requires a commercial software license with ForgeRock AS.
- * or with one of its affiliates. All use shall be exclusively subject
- * to such license between the licensee and ForgeRock AS.
- */
+// /*
+//  * Copyright 2014-2018 ForgeRock AS. All Rights Reserved
+//  *
+//  * Use of this code requires a commercial software license with ForgeRock AS.
+//  * or with one of its affiliates. All use shall be exclusively subject
+//  * to such license between the licensee and ForgeRock AS.
+//  */
+
+import static groovyx.net.http.Method.POST
+import static groovyx.net.http.ContentType.URLENC
+
+import groovy.json.JsonSlurper
+import groovyx.net.http.RESTClient
+import org.apache.http.client.HttpClient
+import static groovyx.net.http.ContentType.JSON
+import org.identityconnectors.common.logging.Log
+import org.identityconnectors.common.security.SecurityUtil
+import org.forgerock.openicf.connectors.groovy.OperationType
+import org.identityconnectors.framework.common.objects.ObjectClass
+import org.forgerock.openicf.connectors.scriptedrest.SimpleCRESTFilterVisitor
+import org.identityconnectors.framework.common.exceptions.ConnectorException
+import org.forgerock.openicf.connectors.scriptedrest.ScriptedRESTConfiguration
+import org.identityconnectors.framework.common.objects.AttributeInfoBuilder
 
 import static org.identityconnectors.framework.common.objects.AttributeInfo.Flags.NOT_READABLE
 import static org.identityconnectors.framework.common.objects.AttributeInfo.Flags.NOT_RETURNED_BY_DEFAULT
 import static org.identityconnectors.framework.common.objects.AttributeInfo.Flags.NOT_UPDATEABLE
-
-import groovyx.net.http.RESTClient
-import org.apache.http.client.HttpClient
-import org.forgerock.openicf.connectors.groovy.OperationType
-import org.forgerock.openicf.connectors.scriptedrest.ScriptedRESTConfiguration
-import org.identityconnectors.common.logging.Log
-import org.identityconnectors.framework.common.objects.AttributeInfoBuilder
-import org.identityconnectors.framework.common.objects.ObjectClass
+import static org.identityconnectors.framework.common.objects.AttributeInfo.Flags.REQUIRED
+import static org.identityconnectors.framework.common.objects.AttributeInfo.Flags.NOT_CREATABLE
 
 def operation = operation as OperationType
 def configuration = configuration as ScriptedRESTConfiguration
 def httpClient = connection as HttpClient
 def connection = customizedConnection as RESTClient
 def log = log as Log
+def customConfig = configuration.getPropertyBag().get("config") as ConfigObject
 def logPrefix = "[Akamai] [SchemaScript]: "
-
 log.info(logPrefix + "Entering " + operation + " Script!");
 
-// Declare the __ACCOUNT__ attributes
+// Build basic auth header
+def up = configuration.getUsername() + ":" + SecurityUtil.decrypt(configuration.getPassword())
+def bauth = up.getBytes().encodeBase64()
+
+/**
+* =============================
+* GET ACCESS SCHEMA FROM AKAMAI IDENTITY CLOUD
+* =============================
+*/
+List <AttributeInfoBuilder> attributes = []
+
+Map<String, String> pairs = new HashMap<String, String>();
+pairs.put("type_name", "user");
+pairs.put("access_type", "read");
+pairs.put("for_client_id", configuration.getUsername());
+
+connection.request(POST, URLENC) { req ->
+    uri.path = '/entityType.getAccessSchema'
+    headers.'Authorization' = "Basic " + bauth
+    headers.'Content-Type' = "application/x-www-form-urlencoded"
+    body = pairs
+
+    response.success = { resp, json ->
+        assert resp.status == 200
+        log.error("getAccessSchema Success")
+
+        def parsed = new JsonSlurper().parseText(json.keySet().toArray()[0])
+        def attrDefs = parsed.schema.attr_defs
+
+        attrDefs.each { attr ->
+            def name = attr.name
+            if (attr.type == 'string' || attr.type == 'id' || attr.type == 'uuid' || attr.type == 'dateTime' || attr.type == 'date' || attr.type == 'password-bcrypt') {
+                attributes.add(new AttributeInfoBuilder(attr.name, String.class))
+            } else if (attr.type == 'boolean') {
+                attributes.add(new AttributeInfoBuilder(attr.name, Boolean.class))
+            } else if (attr.type == 'object') {
+                attributes.add(new AttributeInfoBuilder(attr.name, Map.class))
+            } else if (attr.type == 'plural') {
+                attributes.add(new AttributeInfoBuilder(attr.name, Map.class).setMultiValued(true))
+            }
+        }
+    }
+
+    response.failure = { resp, json ->
+        log.error "Akamai API request failed with status: " + resp.status
+        if (resp.status > 400 && resp.status != 404) {
+            throw new ConnectorException("getAccessSchema request failed")
+        }
+    }
+}
+
 // _id
 def idAIB = new AttributeInfoBuilder("__NAME__", String.class);
 idAIB.setCreateable(true);
 idAIB.setMultiValued(false);
 idAIB.setUpdateable(false);
 
-// password
-def passwordAIB = new AttributeInfoBuilder("password", String.class);
-passwordAIB.setMultiValued(false);
-
-// gender
-def genderAIB = new AttributeInfoBuilder("gender", String.class);
-genderAIB.setMultiValued(false);
-
-// mobileNumber
-def mobileNumberAIB = new AttributeInfoBuilder("mobileNumber", String.class);
-mobileNumberAIB.setMultiValued(false);
-
-// familyName
-def familyNameAIB = new AttributeInfoBuilder("familyName", String.class);
-familyNameAIB.setMultiValued(false);
-
-// givenname
-def givenNameAIB = new AttributeInfoBuilder("givenName", String.class);
-givenNameAIB.setMultiValued(false);
-
-// middleName
-def middleNameAIB = new AttributeInfoBuilder("middleName", String.class);
-middleNameAIB.setMultiValued(false);
-
-// displayName
-def displayNameAIB = new AttributeInfoBuilder("displayName", String.class);
-displayNameAIB.setMultiValued(false);
-
-//email
-def email = new AttributeInfoBuilder("email", String.class);
-email.setMultiValued(false);
-
-// address1
-def addressAIB = new AttributeInfoBuilder("address1", String.class);
-addressAIB.setMultiValued(false);
-
-// city
-def cityAIB = new AttributeInfoBuilder("city", String.class);
-cityAIB.setMultiValued(false);
-
-// country
-def countryAIB = new AttributeInfoBuilder("country", String.class);
-countryAIB.setMultiValued(false);
-
-// zip code
-def zipAIB = new AttributeInfoBuilder("zip", String.class);
-zipAIB.setMultiValued(false);
-
-// stateAbbreviation
-def stateAbbreviationAIB = new AttributeInfoBuilder("stateAbbreviation", String.class);
-stateAbbreviationAIB.setMultiValued(false);
-
+/** 
+* =============================
+* BUILD SCHEMA
+* =============================
+*/
 return builder.schema({
     objectClass {
         type ObjectClass.ACCOUNT_NAME
         attribute idAIB.build()
-        attribute passwordAIB.build()
-        attribute genderAIB.build()
-        attribute addressAIB.build()
-        attribute email.build()
-        attribute mobileNumberAIB.build()
-        attribute givenNameAIB.build()
-        attribute familyNameAIB.build()
-        attribute displayNameAIB.build()
-        attribute middleNameAIB.build()
-        attribute zipAIB.build()
-        attribute stateAbbreviationAIB.build()
-        attribute cityAIB.build()
-        attribute countryAIB.build()
+        attributes.each { attr ->
+            attribute attr.build()
+        }
     }
 })
 
