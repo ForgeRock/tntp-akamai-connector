@@ -83,34 +83,18 @@ if (filter != null) {
             response.success = { resp, json ->
                 assert resp.status == 200
                 log.error("Search Success")
-                log.error(logPrefix + "JSON Response: {0}", new Object[]{json})
 
                 def parsed = new JsonSlurper().parseText(json.keySet().toArray()[0])
-                log.error(logPrefix + "JSON String: " + parsed)
+                log.error("SINGLE SEARCH RESPONSE - JSON String: " + parsed)
 
-                Map<String, Object> map = new LinkedHashMap<>()
-                if (parsed.result.givenName != null) { map.put("givenName", parsed.result.givenName) }
-                if (parsed.result.familyName != null) { map.put("familyName", parsed.result.familyName)}
-                if (parsed.result.displayName != null) { map.put("displayName", parsed.result.displayName) }
-                if (parsed.result.middleName != null) { map.put("middleName", parsed.result.middleName) }
-                if (parsed.result.email != null) { map.put("email", parsed.result.email) }
-                if (parsed.result.mobileNumber != null) { map.put("mobileNumber", parsed.result.mobileNumber) }
-                if (parsed.result.gender != null) { map.put("gender", parsed.result.gender)}
+                def map = parsed.result
                 if (parsed.result.password?.value != null) {
                     def originalPassword = parsed.result.password.value
                     def prefix = '''{BCRYPT}$2a$'''
                     def updatedPassword =  prefix + originalPassword.substring(4)
                     def guardedPassword = new GuardedString(updatedPassword.toCharArray())
-                    map.put("password", guardedPassword)
+                    map.password = guardedPassword
                 }
-                // ** Address Fields ** //
-                if (parsed?.result?.primaryAddress?.address1 != null) { map.put("address1", parsed.result.primaryAddress.address1) } // -> address1
-                if (parsed?.result?.primaryAddress?.city != null) { map.put("city", parsed.result.primaryAddress.city) } // -> city
-                if (parsed?.result?.primaryAddress?.country != null) { map.put("country", parsed.result.primaryAddress.country) } // -> country
-                if (parsed?.result?.primaryAddress?.stateAbbreviation != null) { map.put("stateAbbreviation", parsed.result.primaryAddress.stateAbbreviation) } // -> stateProvince
-                if (parsed?.result?.primaryAddress?.zip != null) { map.put("zip", parsed.result.primaryAddress.zip) } // -> postalCode
-
-                log.error("SINGLE SEARCH - MAP: " + map)
                 
                 handler {
                     uid parsed.result.id.toString()
@@ -161,36 +145,20 @@ if (filter != null) {
             response.success = { resp, json ->
                 assert resp.status == 200
                 log.error("Bulk Search Success")
-                log.error(logPrefix + "RESPONSE: {0}", resp)
 
                 def parsed = new JsonSlurper().parseText(json.keySet().toArray()[0])
                 log.error("BULK SEARCH RESPONSE - JSON String: " + parsed)
 
                 if (parsed.results && parsed.results.size() > 0) {
                     parsed.results.each { item ->
-                    Map<String, Object> map = new LinkedHashMap<>();
-                    if (item.givenName != null) { map.put("givenName", item.givenName) }
-                    if (item.familyName != null) { map.put("familyName", item.familyName) }
-                    if (item.middleName != null) { map.put("middleName", item.middleName) }
-                    if (item.displayName != null) { map.put("displayName", item.displayName) }
-                    if (item.email != null) { map.put("email", item.email) }
-                    if (item.mobileNumber != null) { map.put("mobileNumber", item.mobileNumber) } // -> telephoneNumber
-                    if (item.gender != null) { map.put("gender", item.gender) }
-                    if (item.password?.value != null) {
-                        def originalPassword = item.password.value
-                        def prefix = '''{BCRYPT}$2a$'''
-                        def updatedPassword =  prefix + originalPassword.substring(4)
-                        def guardedPassword = new GuardedString(updatedPassword.toCharArray())
-                        map.put("password", guardedPassword)
-                    }
-                    // ** Address Fields ** //
-                    if (item.primaryAddress?.address1 != null) { map.put("address1", item.primaryAddress.address1) } // -> address1
-                    if (item.primaryAddress?.city != null) { map.put("city", item.primaryAddress.city) } // -> city
-                    if (item.primaryAddress?.country != null) { map.put("country", item.primaryAddress.country) } // -> country
-                    if (item.primaryAddress?.stateAbbreviation != null) { map.put("stateAbbreviation", item.primaryAddress.stateAbbreviation) } // -> stateProvince
-                    if (item.primaryAddress?.zip != null) { map.put("zip", item.primaryAddress.zip) } // -> postalCode
-
-                    log.error("BULK SEARCH - MAP: " + map)
+                        def map = new LinkedHashMap<>(item);
+                        if (item.password?.value != null) {
+                            def originalPassword = item.password.value
+                            def prefix = '''{BCRYPT}$2a$'''
+                            def updatedPassword =  prefix + originalPassword.substring(4)
+                            def guardedPassword = new GuardedString(updatedPassword.toCharArray())
+                            map.password = guardedPassword
+                        }
 
                     handler {
                         uid item.id.toString()

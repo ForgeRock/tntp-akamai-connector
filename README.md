@@ -17,6 +17,13 @@
 
 Akamai Identity Cloud RCS Connector for synchronization with PingIDM / PingOne AIC and Akamai Identity Cloud.
 
+**Current Features:**
+- One-way synchronization (Akamai → PingOne IDM)
+- Password migration
+- Support for custom attributes
+
+**Planned for Future Releases:**
+- Bidirectional synchronization (PingOne IDM ↔ Akamai Identity Cloud)
 
 ## Setup
 
@@ -24,9 +31,9 @@ Install and setup the Java RCS: https://backstage.forgerock.com/docs/openicf/lat
 
 Once Java RCS openicf is downloaded, create a tools directory in the openicf directory. Place these groovy scripts in this tools directory.
 
-There are also 3 libraries that need to be installed. These are called secrets-api, chf-http-core, and json-web-token. These can be installed in the /lib/framework directory of openicf. These jar files can be found by installing the latest of openidm, and finding those dependncies in the openidm/bundle folder. OpenIDM installation can be found here: https://backstage.forgerock.com/downloads/browse/idm/featured
+There are also 3 libraries that need to be installed. These are called secrets-api, chf-http-core, and json-web-token. These can be installed in the /lib/framework directory of openicf. These jar files can be found by installing the latest of openidm, and finding those dependencies in the openidm/bundle folder. OpenIDM installation can be found here: https://backstage.forgerock.com/downloads/browse/idm/featured
 
-For on prem installation, follow these steps here: https://docs.pingidentity.com/pingidm/7.2/connector-reference/configure-connector.html#connector-wiz-REST.
+For on-premises installations, follow these steps here: https://docs.pingidentity.com/pingidm/7.2/connector-reference/configure-connector.html#connector-wiz-REST.
 
 ## Configurations
 
@@ -123,28 +130,15 @@ After creating the connector, set these configurations:
 
 ## Basic mappings
 
-Navigate to Native Consoles > Identity Management. Under the Configure tab, select Mappings, and create a new mapping. Choose the Scripted REST Connector as the source and select the desired User Managed Object as the target.
+Navigate to Native Consoles > Identity Management > Configure > Mappings. Create a new mapping selecting the Akamai Scripted REST Connector as the source and the appropriate PingIDM managed object as the target.
 
 After creating the mapping from Akamai to PingIDM, you can set the following property configurations:
 
-![ScreenShot](./images/example_mappings.png)
+![ScreenShot](./images/example_mapping.png)
 
 ### Supported Attributes
-The Akamai connector supports these Akamai Identity Cloud attributes:
-- `givenName`
-- `familyName`
-- `middleName`
-   - *Custom IDM attribute required*
-- `displayName`
-- `email`
-- `mobileNumber`
-- `gender`
-- `password`
-- `address1`
-- `stateAbbreviation`
-- `city`
-- `country`
-- `zip`
+The Akamai connector supports all standard Akamai Identity Cloud attributes as well as custom attributes defined in your Akamai schema.
+- To synchronize custom attributes from Akamai Identity Cloud into PingIDM, you must first define the corresponding custom attributes in IDM.
 
 **Note:** It is recommended that all schema attribute policies are turned off in order to avoid attribute mapping complications.
 
