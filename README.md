@@ -154,8 +154,6 @@ Example property mapping configuration:
 The Akamai connector supports all standard Akamai Identity Cloud attributes as well as custom attributes defined in your Akamai schema.
 - To synchronize custom attributes from Akamai Identity Cloud into PingIDM, you must first define the corresponding custom attributes in IDM.
 
-<br>
-
 **Note:** It is recommended that all schema attribute policies are turned off in order to avoid attribute mapping complications.
 
 <!-- SUPPORT -->
