@@ -134,13 +134,15 @@ After creating the connector, set these configurations:
 
 **Akamai Identity Cloud → PingIDM:**
 - In the Native Console, go to **Identity Management > Configure > Mappings**.
-- Create a new mapping. Set the **Akamai Scripted REST Connector** as the *source* and the desired **PingIDM managed object** as the *target*.
+- Create a new mapping.
+- Set the **Akamai Scripted REST Connector** as the *source* and the desired **PingIDM managed object** as the *target*.
 
 <br>
 
 **PingIDM → Akamai Identity Cloud:**
 - In the Native Console, go to **Identity Management > Configure > Mappings**.
-- Create a new mapping. Set the **PingIDM managed object** as the *source* and the **Akamai Scripted REST Connector** as the *target*.
+- Create a new mapping.
+- Set the desired **PingIDM managed object** as the *source* and the **Akamai Scripted REST Connector** as the *target*.
 
 After creating the mapping in either direction, you can configure property mappings to define which attributes synchronize between Akamai and PingIDM.
 
