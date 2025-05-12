@@ -7,7 +7,6 @@
  */
 
 import static groovyx.net.http.Method.POST
-import static groovyx.net.http.ContentType.URLENC
 
 import groovyx.net.http.RESTClient
 import org.apache.http.client.HttpClient
@@ -74,7 +73,7 @@ if (filter != null) {
         pairs.put("type_name", "user");
         pairs.put("id", Integer.parseInt(uuid.getUidValue()))
 
-        connection.request(POST, URLENC) { req ->
+        connection.request(POST) { req ->
             uri.path = '/entity'
             headers.'Authorization' = "Basic " + bauth
             headers.'Content-Type' = "application/x-www-form-urlencoded"
@@ -84,7 +83,7 @@ if (filter != null) {
                 assert resp.status == 200
                 log.error("Search Success")
 
-                def parsed = new JsonSlurper().parseText(json.keySet().toArray()[0])
+                def parsed = new JsonSlurper().parseText(json)
                 log.error("SINGLE SEARCH RESPONSE - JSON String: " + parsed)
 
                 def map = parsed.result
@@ -136,7 +135,7 @@ if (filter != null) {
         pairs.put("filter", "id > " + lastId)
         log.error("Pairs: {0}", new Object[]{pairs})
 
-        connection.request(POST, URLENC) { req ->
+        connection.request(POST) { req ->
             uri.path = '/entity.find'
             headers.'Authorization' = "Basic " + bauth
             headers.'Content-Type' = "application/x-www-form-urlencoded"
@@ -146,7 +145,7 @@ if (filter != null) {
                 assert resp.status == 200
                 log.error("Bulk Search Success")
 
-                def parsed = new JsonSlurper().parseText(json.keySet().toArray()[0])
+                def parsed = new JsonSlurper().parseText(json)
                 log.error("BULK SEARCH RESPONSE - JSON String: " + parsed)
 
                 if (parsed.results && parsed.results.size() > 0) {
