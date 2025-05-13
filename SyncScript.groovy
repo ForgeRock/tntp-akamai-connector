@@ -130,7 +130,7 @@ if (OperationType.GET_LATEST_SYNC_TOKEN.equals(operation)) {
                     //     continueLoop = false
                     // }
                 }
-                return new SyncToken(1747087327999)
+                return new SyncToken(currentToken)
             }
 
         response.failure = { resp, json ->
