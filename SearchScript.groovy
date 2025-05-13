@@ -7,6 +7,7 @@
  */
 
 import static groovyx.net.http.Method.POST
+import static groovyx.net.http.ContentType.*
 
 import groovyx.net.http.RESTClient
 import org.apache.http.client.HttpClient
@@ -28,7 +29,6 @@ import org.identityconnectors.common.security.GuardedString
 
 import org.identityconnectors.framework.common.exceptions.ConnectorException
 import org.forgerock.openicf.connectors.scriptedrest.ScriptedRESTUtils
-import static groovyx.net.http.ContentType.JSON
 import org.identityconnectors.common.security.SecurityUtil
 import groovy.json.JsonSlurper
 
@@ -61,6 +61,7 @@ def bauth = up.getBytes().encodeBase64()
  */
 if (filter != null) {
     def uuid = FrameworkUtil.getUidIfGetOperation(filter)
+    log.error(logPrefix + "Filter Object: {0}", new Object[]{filter})
     log.error(logPrefix + "UID from FILTER: {0}", new Object[]{uuid})
     if (uuid != null) {
         // Clean up any cached data for this UID if present
@@ -73,18 +74,20 @@ if (filter != null) {
         pairs.put("type_name", "user");
         pairs.put("id", Integer.parseInt(uuid.getUidValue()))
 
-        connection.request(POST) { req ->
+        connection.request(POST, URLENC) { req ->
             uri.path = '/entity'
             headers.'Authorization' = "Basic " + bauth
             headers.'Content-Type' = "application/x-www-form-urlencoded"
+            headers.'Accept' = "application/json"
             body = pairs
+            parseResponse = false
 
-            response.success = { resp, json ->
+            response.success = { resp ->
                 assert resp.status == 200
                 log.error("Search Success")
 
-                def parsed = new JsonSlurper().parseText(json)
-                log.error("SINGLE SEARCH RESPONSE - JSON String: " + parsed)
+                def parsed = new JsonSlurper().parseText(resp.entity.content.text)
+                // log.error("SINGLE SEARCH RESPONSE - JSON String: " + parsed)
 
                 def map = parsed.result
                 if (parsed.result.password?.value != null) {
@@ -135,18 +138,20 @@ if (filter != null) {
         pairs.put("filter", "id > " + lastId)
         log.error("Pairs: {0}", new Object[]{pairs})
 
-        connection.request(POST) { req ->
+        connection.request(POST, URLENC) { req ->
             uri.path = '/entity.find'
             headers.'Authorization' = "Basic " + bauth
             headers.'Content-Type' = "application/x-www-form-urlencoded"
+            headers.'Accept' = "application/json"
             body = pairs
+            parseResponse = false
 
-            response.success = { resp, json ->
+            response.success = { resp ->
                 assert resp.status == 200
                 log.error("Bulk Search Success")
 
-                def parsed = new JsonSlurper().parseText(json)
-                log.error("BULK SEARCH RESPONSE - JSON String: " + parsed)
+                def parsed = new JsonSlurper().parseText(resp.entity.content.text)
+                // log.error("BULK SEARCH RESPONSE - JSON String: " + parsed)
 
                 if (parsed.results && parsed.results.size() > 0) {
                     parsed.results.each { item ->
