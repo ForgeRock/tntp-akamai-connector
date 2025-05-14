@@ -74,7 +74,7 @@ if (OperationType.GET_LATEST_SYNC_TOKEN.equals(operation)) {
     log.error("Formatted Date: {0}", formattedDate)
 
     Map<String, String> pairs = new HashMap<String, String>();
-    pairs.put("type_name", "user");
+    pairs.put("type_name", "goldenProfile");
     pairs.put("sort_on", '["id"]')
     pairs.put("filter", "lastUpdated > '" + formattedDate + "'")
     log.error("Pairs: {0}", new Object[]{pairs})
