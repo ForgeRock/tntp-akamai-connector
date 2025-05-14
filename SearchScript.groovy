@@ -32,6 +32,9 @@ import org.forgerock.openicf.connectors.scriptedrest.ScriptedRESTUtils
 import org.identityconnectors.common.security.SecurityUtil
 import groovy.json.JsonSlurper
 
+def MAX_RESULTS = 50000
+def TOTAL_RESULTS = 100000
+
 // Cast input parameters
 def operation = operation as OperationType
 def configuration = configuration as ScriptedRESTConfiguration
@@ -87,7 +90,7 @@ if (filter != null) {
                 log.error("Search Success")
 
                 def parsed = new JsonSlurper().parseText(resp.entity.content.text)
-                // log.error("SINGLE SEARCH RESPONSE - JSON String: " + parsed)
+                log.error("SINGLE SEARCH RESPONSE - JSON String: {0}", parsed)
 
                 def map = parsed.result
                 if (parsed.result.password?.value != null) {
@@ -116,27 +119,25 @@ if (filter != null) {
     }
 /**
 * ================================
-* LIST ALL PATIENTS (No Filter Provided)
+* LIST ALL AKAMAI USERS (No Filter Provided)
 * ================================
 *
 * When no filter is provided,
-*   - 1st:  The script performs a list operation by querying the /fhir/Patient endpoint. 
-*   - 2nd:  It processes the initial response to capture a pagination URL (if available) 
-*   - 3rd:  Iterates through pages (up to 10 pages) to retrieve and process all patient entries, passing each to the handler.
+*   - 1st:  The script performs a list operation by querying the /entity.find endpoint. 
+*   - 2nd:  It returns based on MAX_RESULTS continutes iterating until it reaches TOTAL_RESULTS
 *
 */
 } else {
     def lastId = 0
-    def maxResults = 500
     def continueLoop = true
-    
+    def currentResults = 0
+
     while (continueLoop) {
         Map<String, String> pairs = new HashMap<String, String>();
         pairs.put("type_name", "user");
-        pairs.put("max_results", maxResults)
+        pairs.put("max_results", MAX_RESULTS)
         pairs.put("sort_on", '["id"]')
         pairs.put("filter", "id > " + lastId)
-        log.error("Pairs: {0}", new Object[]{pairs})
 
         connection.request(POST, URLENC) { req ->
             uri.path = '/entity.find'
@@ -151,10 +152,11 @@ if (filter != null) {
                 log.error("Bulk Search Success")
 
                 def parsed = new JsonSlurper().parseText(resp.entity.content.text)
-                // log.error("BULK SEARCH RESPONSE - JSON String: " + parsed)
+                // log.error("BULK SEARCH - Akamai Identity Response: {0}", parsed)
 
                 if (parsed.results && parsed.results.size() > 0) {
                     parsed.results.each { item ->
+                    // log.error("BULK SEARCH - Akamai User: {0}", item)
                         def map = new LinkedHashMap<>(item);
                         if (item.password?.value != null) {
                             def originalPassword = item.password.value
@@ -164,17 +166,24 @@ if (filter != null) {
                             map.password = guardedPassword
                         }
 
-                    handler {
-                        uid item.id.toString()
-                        id item.id.toString()
-                        attributes ScriptedRESTUtils.MapToAttributes(map, [], false, false)
+                        handler {
+                            uid item.id.toString()
+                            id item.id.toString()
+                            attributes ScriptedRESTUtils.MapToAttributes(map, [], false, false)
+                        }
                     }
-                }
-                if (parsed.results.size() < maxResults) {
-                    continueLoop = false
-                } else {
-                    lastId = parsed.results.last().id
-                }
+
+                    // If size < MAX_RESULTS, last query has been reached
+                    if (parsed.results.size() < MAX_RESULTS) {
+                        continueLoop = false
+                    // If currentResults >= TOTAL_RESULTS, stop prrocessing
+                    } else if (currentResults >= TOTAL_RESULTS) {
+                        continueLoop = false
+                    // If size == MAX_RESULTS, continue querying
+                    } else {
+                        currentResults += parsed.results.size()
+                        lastId = parsed.results.last().id
+                    }
                 } else {
                     continueLoop = false
                 }
