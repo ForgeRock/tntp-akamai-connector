@@ -36,6 +36,9 @@ import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
+def MAX_RESULTS = 10
+def TOTAL_RESULTS = 200
+
 // Cast input parameters
 def operation = operation as OperationType
 def configuration = configuration as ScriptedRESTConfiguration
@@ -58,9 +61,11 @@ if (OperationType.GET_LATEST_SYNC_TOKEN.equals(operation)) {
     return new SyncToken(unixTime)
 
 } else if (OperationType.SYNC.equals(operation)) {
-    
-    def lastToken = token as Object
+    def lastId = 0
+    def continueLoop = true
+    def currentResults = 0
 
+    def lastToken = token as Object
     log.error("Initial run - TOKEN: {0}", token)
 
     def currentToken = System.currentTimeMillis()
@@ -73,68 +78,91 @@ if (OperationType.GET_LATEST_SYNC_TOKEN.equals(operation)) {
 
     log.error("Formatted Date: {0}", formattedDate)
 
-    Map<String, String> pairs = new HashMap<String, String>();
-    pairs.put("type_name", "user");
-    pairs.put("sort_on", '["id"]')
-    pairs.put("filter", "lastUpdated > '" + formattedDate + "'")
-    log.error("Pairs: {0}", new Object[]{pairs})
+    while (continueLoop) {
+        Map<String, String> pairs = new HashMap<String, String>();
+        pairs.put("type_name", "user");
+        pairs.put("sort_on", '["id"]')
+        pairs.put("max_results", MAX_RESULTS)
+        pairs.put("filter", "lastUpdated > '" + formattedDate + "' AND id > " + lastId)
+        log.error("Pairs: {0}", new Object[]{pairs})
 
-    log.error("Making request")
-    return connection.request(POST, URLENC) { req ->
-        uri.path = '/entity.find'
-        headers.'Authorization' = "Basic " + bauth
-        headers.'Content-Type' = "application/x-www-form-urlencoded"
-        body = pairs
-        parseResponse = false
+        log.error("Making Sync Request")
+        return connection.request(POST, URLENC) { req ->
+        // connection.request(POST, URLENC) { req ->
+            uri.path = '/entity.find'
+            headers.'Authorization' = "Basic " + bauth
+            headers.'Content-Type' = "application/x-www-form-urlencoded"
+            body = pairs
+            parseResponse = false
 
-        //** RESPONSE SUCCESS **//
-        response.success = { resp ->
-            assert resp.status == 200
-            log.error("Sync Success")
+            //** RESPONSE SUCCESS **//
+            response.success = { resp ->
+                assert resp.status == 200
+                log.error("Sync Success")
 
-            def parsed = new JsonSlurper().parseText(resp.entity.content.text)
-            // def parsed = []
-            log.error("SYNC RESPONSE - JSON String: {0}", parsed)
-            
-            if (parsed.results && parsed.results.size() > 0) {
-                parsed.results.each { item ->
-                    def map = new LinkedHashMap<>(item);
-                    if (item.password?.value != null) {
-                        def originalPassword = item.password.value
-                        def prefix = '''{BCRYPT}$2a$'''
-                        def updatedPassword =  prefix + originalPassword.substring(4)
-                        def guardedPassword = new GuardedString(updatedPassword.toCharArray())
-                        map.password = guardedPassword
-                    }
-                    
-                    log.error("MAP: {0}", map)
-                    log.error("SYNC TOKEN: {0}", currentToken)
-                    log.error("LAST TOKEN: {0}", lastToken)
-                    log.error("ID: {0}", item.id.toString())
-                    log.error("UID: {0}", item.id.toString())
+                def parsed = new JsonSlurper().parseText(resp.entity.content.text)
+                // def parsed = []
+                log.error("SYNC RESPONSE - JSON String: {0}", parsed)
 
-                    return handler({
-                        syncToken currentToken
-                        lastToken = currentToken
-                        CREATE_OR_UPDATE()
-                        object {
-                            uid item.id.toString()
-                            id item.id.toString()
-                            attributes ScriptedRESTUtils.MapToAttributes(map, ["_id", "name"], false, false)
+                if (parsed.results && parsed.results.size() > 0) {
+                    parsed.results.each { item ->
+                        def map = new LinkedHashMap<>(item);
+                        if (item.password?.value != null) {
+                            def originalPassword = item.password.value
+                            def prefix = '''{BCRYPT}$2a$'''
+                            def updatedPassword =  prefix + originalPassword.substring(4)
+                            def guardedPassword = new GuardedString(updatedPassword.toCharArray())
+                            map.password = guardedPassword
                         }
-                    })  
-                }
-            }
-            log.error("Before return - Current Token: {0}", currentToken)
-            return new SyncToken(currentToken)
-        }
 
-        //** RESPONSE FAILURE **//
-        response.failure = { resp, json ->
-            log.error 'request failed'
-            log.error(resp.status)
-            assert resp.status >= 400
-            throw new ConnectorException("List all Failed")
+                        // Parse 'lastUpdated' to epoch time and update `currentToken`
+                        def lastUpdatedValue = item.lastUpdated
+                        def lastUpdatedTime = ZonedDateTime.parse(lastUpdatedValue, formatter)
+                        currentToken = lastUpdatedTime.toInstant().toEpochMilli()
+
+                        log.error("MAP: {0}", map)
+                        log.error("SYNC TOKEN: {0}", currentToken)
+                        log.error("LAST TOKEN: {0}", lastToken)
+                        log.error("ID: {0}", item.id.toString())
+                        log.error("UID: {0}", item.id.toString())
+
+                        return handler({
+                            syncToken currentToken
+                            lastToken = currentToken
+                            CREATE_OR_UPDATE()
+                            object {
+                                uid item.id.toString()
+                                id item.id.toString()
+                                attributes ScriptedRESTUtils.MapToAttributes(map, [], false, false)
+                            }
+                        })  
+                    }
+
+                    // If size < MAX_RESULTS, last query has been reached
+                    if (parsed.results.size() < MAX_RESULTS) {
+                        continueLoop = false
+                    // If currentResults >= TOTAL_RESULTS, stop prrocessing
+                    } else if (currentResults >= TOTAL_RESULTS) {
+                        continueLoop = false
+                    // If size == MAX_RESULTS, continue querying
+                    } else {
+                        currentResults += parsed.results.size()
+                        lastId = parsed.results.last().id
+                    }
+                } else {
+                    continueLoop = false
+                }
+                log.error("Before return - Current Token: {0}", currentToken)
+                return new SyncToken(currentToken)
+            }
+
+            //** RESPONSE FAILURE **//
+            response.failure = { resp, json ->
+                log.error 'request failed'
+                log.error(resp.status)
+                assert resp.status >= 400
+                throw new ConnectorException("List all Failed")
+            }
         }
     }
 }
