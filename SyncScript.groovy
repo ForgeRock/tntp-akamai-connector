@@ -117,10 +117,12 @@ if (OperationType.GET_LATEST_SYNC_TOKEN.equals(operation)) {
 
                         // Parse 'lastUpdated' to epoch time and update `currentToken`
                         def lastUpdatedValue = item.lastUpdated
-                        def lastUpdatedTime = ZonedDateTime.parse(lastUpdatedValue, formatter)
+                        def safeTimestamp = normalizeTimestamp(lastUpdatedValue)
+                        def lastUpdatedTime = ZonedDateTime.parse(safeTimestamp, formatter)
                         currentToken = lastUpdatedTime.toInstant().toEpochMilli()
 
                         log.error("MAP: {0}", map)
+                        log.error("Last Updated Value: {0}", lastUpdatedValue)
                         log.error("SYNC TOKEN: {0}", currentToken)
                         log.error("LAST TOKEN: {0}", lastToken)
                         log.error("ID: {0}", item.id.toString())
@@ -165,4 +167,23 @@ if (OperationType.GET_LATEST_SYNC_TOKEN.equals(operation)) {
             }
         }
     }
+}
+
+// Normalize fractional seconds
+def normalizeTimestamp(String timestamp) {
+    def parts = timestamp.split("\\.")
+    if (parts.size() == 2 && parts[1].contains(" ")) {
+        def timePart = parts[1].split(" ")[0]
+        def zonePart = parts[1].substring(timePart.length())
+        // If milliseconds < 6 digits, pad with zeros
+        if (timePart.length() < 6) {
+            timePart = timePart.padRight(6, "0")
+        // If milliseconds > 6 digits, trim to 6 digits
+        } else if (timePart.length() > 6) {
+            timePart = timePart.substring(0, 6)
+        }
+        // Reassemble the timestamp
+        return "${parts[0]}.${timePart}${zonePart}"
+    }
+    return timestamp
 }
